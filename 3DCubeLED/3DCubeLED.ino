@@ -12,6 +12,8 @@ int selectPin = 8;
 
 byte level[4];
 
+int loopCount = 0;
+
 unsigned int red[4];
 unsigned int blue[4];
 unsigned int renderRed[4];
@@ -87,48 +89,79 @@ void setup()
 
 void loop() 
 {
+  loopCount++;
+  static int movementBlink = 0;
+  mpu.update();
   if(!gameOver){
-    mpu.update();
     sensorChecking();
-    movement();
+    if(movementBlink > 10){
+      movement();
+      movementBlink = 0;
+    }
     cursorRender();
     gameLogic();
   }else{
     winningRender();
   }
   
-  rowByrow();
+//  rowByrow();
   renderCube();
+  movementBlink++;
+  moveX = false;
+  moveY = false;
+  moveZ = false;
 }
 
 void sensorChecking(){
 
-  xAxisAngle = mpu.getAccAngleX();
-//  delay(10);  
-  yAxisAngle = mpu.getAccAngleY();
-//  delay(10);
-  zAxisAngle = mpu.getAngleZ();
-
-  Serial.print(prevX);Serial.print("\t");Serial.println(mpu.getAccAngleX());
-  Serial.print(prevY);Serial.print("\t");Serial.println(mpu.getAccAngleY());
-  Serial.print(prevZ);Serial.print("\t");Serial.println(mpu.getAngleZ());
-  Serial.println(F("=====================================================\n"));
+  if (loopCount % 10 == 0) {
+        xAxisAngle = mpu.getAccAngleX();
 
   if (xAxisAngle <= -18) {
     moveX = true;
     Serial.println("Going right"); 
-  } else if (yAxisAngle >= 18) {
+    return;
+  }
+  yAxisAngle = mpu.getAccAngleY();
+  if (yAxisAngle >= 18) {
     moveY = true;
     Serial.println("Going Up"); 
-  } else if (zAxisAngle >= 18) {
+    return;
+  }
+  zAxisAngle = mpu.getAngleZ();
+  if (zAxisAngle >= 18) {
     moveZ = true;
     Serial.println("Going forward"); 
+    return;
   }
+  
+////  delay(10);  
+//  yAxisAngle = mpu.getAccAngleY();
+////  delay(10);
+//  zAxisAngle = mpu.getAngleZ();
+
+  Serial.print(prevX);Serial.print("\t");Serial.println(xAxisAngle);
+  Serial.print(prevY);Serial.print("\t");Serial.println(yAxisAngle);
+  Serial.print(prevZ);Serial.print("\t");Serial.println(zAxisAngle);
+  Serial.println(F("=====================================================\n"));
+
+//  if (xAxisAngle <= -18) {
+//    moveX = true;
+//    Serial.println("Going right"); 
+//  } else if (yAxisAngle >= 18) {
+//    moveY = true;
+//    Serial.println("Going Up"); 
+//  } else if (zAxisAngle >= 18) {
+//    moveZ = true;
+//    Serial.println("Going forward"); 
+//  }
 
   /*Store the previous values*/
   prevX = xAxisAngle;
   prevY = yAxisAngle;
-  prevZ = zAxisAngle;  
+  prevZ = zAxisAngle;     
+  }
+ 
   
 }
 
@@ -574,13 +607,13 @@ void cursorRender(){
     renderBlue[i] = blue[i] ;
   }
   
-  if(playerSelecting && blink > 100 && blink < 200){
+  if(playerSelecting && blink > 100 && blink < 300){
     renderRed[cursorLevel] = red[cursorLevel] | cursorLocation;
     renderBlue[cursorLevel] = blue[cursorLevel] | cursorLocation;
   }
 
-  blink += 4;
-  if(blink > 200){
+  blink += 50;
+  if(blink > 300){
     blink = 0;
   }
 }
@@ -615,8 +648,8 @@ void movement(){
     }else if(cursorLocation == 0x0000){
       cursorLocation = 0x0008;
     }
-  }else if(moveY){
-    moveY = false;
+  }else if(moveZ){
+    moveZ = false;
     
     if(cursorLocation == 0x0008)
       cursorLocation = 0x8000;
@@ -628,14 +661,14 @@ void movement(){
       cursorLocation = 0x1000;
     else
       cursorLocation = cursorLocation >> 4;
-  }else if(moveZ){
-    moveZ = false;
+  }else if(moveY){
+    moveY = false;
     
     cursorLevel = (cursorLevel + 1) % 4;
   }
 
   static int debounceDelay = 0;
-  if(digitalRead(selectPin) && debounceDelay > 50){
+  if(digitalRead(selectPin) && debounceDelay > 100){
     if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
       //conflict
     }else{
@@ -696,7 +729,7 @@ void rowByrow(){
     red[i] = renderRed[i] = winningRed[i] = 0x0000;
     blue[i] = renderBlue[i] = winningBlue[i] = 0x0000;
   }
-  static unsigned int j = 0xF;
+  static unsigned int j = 0x1;
   static unsigned int l = 0;
 
   if(redGlow){
@@ -709,7 +742,7 @@ void rowByrow(){
   }
 
   if(j == 0xF000) {
-    j = 0xF;
+    j = 0x1;
     l++;
     
     if(l >= 4){
@@ -718,5 +751,5 @@ void rowByrow(){
       
     }
   }
-  else j = j << 4;
+  else j = j << 1;
 }
