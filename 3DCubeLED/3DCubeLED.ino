@@ -4,8 +4,8 @@ int dataPin = 4;  // Data pin of 74HC595 is connected to Digital pin 4
 
 byte level[4];
 
-byte row12 = 0;
-byte row34 = 0; // Variable to hold the pattern of which LEDs are currently turned on or off
+unsigned int red[4];
+unsigned int blue[4]; // Variable to hold the pattern of which LEDs are currently turned on or off
 
 /*
  * setup() - this function runs once when you turn your Arduino on
@@ -26,6 +26,20 @@ void setup()
     pinMode(level[i], OUTPUT);
     digitalWrite(level[i],LOW);
   }
+
+  for(int i = 0; i < 4; i++){
+    red[i] = 0x0000;
+    blue[i] = 0x0000;
+  }
+
+  red[0] = 0xFF00;
+  blue[0] = 0x00FF;
+
+  red[1] = 0x0F0F;
+  blue[1] = 0xF0F0;
+
+  red[2] = 0xF0F0;
+  blue[2] = 0x0F0F;
 }
 
 /*
@@ -33,8 +47,7 @@ void setup()
  */
 void loop() 
 {
-  row12 = 0b00000000;
-  row34 = 0b00000000;// Initially turns all the LEDs off, by giving the variable 'leds' the value 0
+  // Initially turns all the LEDs off, by giving the variable 'leds' the value 0
   updateShiftRegister();
   
   
@@ -48,8 +61,8 @@ void updateShiftRegister()
        digitalWrite(level[i], HIGH);
   
        digitalWrite(latchPin, LOW);
-       shiftOut(dataPin, clockPin, LSBFIRST, row34);
-       shiftOut(dataPin, clockPin, LSBFIRST, row12);
+       shiftOut(dataPin, clockPin, LSBFIRST, blue[i] >> 8);
+       shiftOut(dataPin, clockPin, LSBFIRST, blue[i]);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        digitalWrite(latchPin, HIGH);
@@ -59,8 +72,8 @@ void updateShiftRegister()
        digitalWrite(latchPin, LOW);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
-       shiftOut(dataPin, clockPin, LSBFIRST, row34);
-       shiftOut(dataPin, clockPin, LSBFIRST, row12);
+       shiftOut(dataPin, clockPin, LSBFIRST, red[i] >> 8);
+       shiftOut(dataPin, clockPin, LSBFIRST, red[i]);
        digitalWrite(latchPin, HIGH);
     
        delay(1);
