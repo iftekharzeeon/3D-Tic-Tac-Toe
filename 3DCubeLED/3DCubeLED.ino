@@ -64,16 +64,6 @@ void setup()
     red[i] = renderRed[i] = winningRed[i] = 0x0000;
     blue[i] = renderBlue[i] = winningBlue[i] = 0x0000;
   }
-
-  red[0] = 0xF00F;
-  red[1] = 0x0FF0;
-  red[2] = 0x0FF0;
-  red[3] = 0xF00F;
-
-  blue[0] = 0xF00F;
-  blue[1] = 0x0FF0;
-  blue[2] = 0x0FF0;
-  blue[3] = 0xF00F;
   
   
   gameOver = false;
@@ -102,12 +92,12 @@ void loop()
     sensorChecking();
     movement();
     cursorRender();
-    //gameLogic();
+    gameLogic();
   }else{
     winningRender();
   }
   
-  //rowByrow();
+  rowByrow();
   renderCube();
 }
 
@@ -645,8 +635,7 @@ void movement(){
   }
 
   static int debounceDelay = 0;
-  if(digitalRead(selectbit) && debounceDelay > 50){
-    debounceDelay = 0;
+  if(digitalRead(selectPin) && debounceDelay > 50){
     if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
       //conflict
     }else{
