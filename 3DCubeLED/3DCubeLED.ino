@@ -1,3 +1,8 @@
+#include "Wire.h"
+#include <MPU6050_light.h>
+
+MPU6050 mpu(Wire);
+
 int latchPin = 5;
 int clockPin = 6;
 int dataPin = 4;
@@ -23,9 +28,18 @@ bool redTurn;
 unsigned int cursorLocation;
 int cursorLevel;
 
+/* Gyro Variables */
+
+float xAxisAngle, yAxisAngle, zAxisAngle;
+float prevX = 0;
+float prevY = 0;
+float prevZ = 0;
+
 
 void setup() 
 {
+  Serial.begin(9600);
+  
   // Set all the pins of 74HC595 as OUTPUT
   pinMode(latchPin, OUTPUT);
   pinMode(dataPin, OUTPUT);  
@@ -46,10 +60,25 @@ void setup()
   gameOver = false;
   playerSelecting = false;
   redTurn = true;
+
+  //Calibrate the Gyroscope
+  Wire.begin();
+  byte status = mpu.begin();
+  Serial.print(F("MPU6050 status: "));
+  Serial.println(status);
+  while(status!=0){
+    Serial.println("Gyro could not be connected!\n");  
+  } // stop everything if could not connect to MPU6050
+  
+  Serial.println(F("Calculating offsets, do not move MPU6050"));
+  delay(1000);
+  mpu.calcOffsets(true,true); // gyro and accelero
+  Serial.println("Done!\n");
 }
 
 void loop() 
 {
+    mpu.update();
   /* 
   if(!gameOver){
     sensorChecking();
@@ -60,10 +89,41 @@ void loop()
     winningRender();
   }
   */
-  renderCube();
+//  renderCube();
+    sensorChecking();
+    delay(1000);
 }
 
 void sensorChecking(){
+  
+
+  /*Get the values*/
+  xAxisAngle = mpu.getAccAngleX();
+//  delay(10);  
+  yAxisAngle = mpu.getAccAngleY();
+//  delay(10);
+  zAxisAngle = mpu.getAngleZ();
+
+  Serial.print(prevX);Serial.print("\t");Serial.println(mpu.getAccAngleX());
+  Serial.print(prevY);Serial.print("\t");Serial.println(mpu.getAccAngleY());
+  Serial.print(prevZ);Serial.print("\t");Serial.println(mpu.getAngleZ());
+  Serial.println(F("=====================================================\n"));
+
+  if (xAxisAngle <= -18) {
+    moveX = true;
+    Serial.println("Going right"); 
+  } else if (yAxisAngle >= 18) {
+    moveY = true;
+    Serial.println("Going Up"); 
+  } else if (zAxisAngle >= 18) {
+    moveZ = true;
+    Serial.println("Going forward"); 
+  }
+
+  /*Store the previous values*/
+  prevX = xAxisAngle;
+  prevY = yAxisAngle;
+  prevZ = zAxisAngle;   
   
 }
 
