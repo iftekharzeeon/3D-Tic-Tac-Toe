@@ -1,16 +1,29 @@
-int latchPin = 5;  // Latch pin of 74HC595 is connected to Digital pin 5
-int clockPin = 6; // Clock pin of 74HC595 is connected to Digital pin 6
-int dataPin = 4;  // Data pin of 74HC595 is connected to Digital pin 4
+int latchPin = 5;
+int clockPin = 6;
+int dataPin = 4;
 
 byte level[4];
 
 unsigned int red[4];
-unsigned int blue[4]; // Variable to hold the pattern of which LEDs are currently turned on or off
+unsigned int blue[4];
+unsigned int renderRed[4];
+unsigned int renderBlue[4];
 
-/*
- * setup() - this function runs once when you turn your Arduino on
- * We initialize the serial connection with the computer
- */
+/* use this bools to inform motion */
+bool moveX = false;
+bool moveY = false;
+bool moveZ = false;
+
+/* game logic vars */
+bool gameOver;
+bool playerSelecting;
+bool redTurn;
+
+/* movement vars */
+unsigned int cursorLocation;
+int cursorLevel;
+
+
 void setup() 
 {
   // Set all the pins of 74HC595 as OUTPUT
@@ -21,48 +34,133 @@ void setup()
   level[1] = 12;
   level[2] = 11;
   level[3] = 10;
-
   for(int i = 0; i < 4; i++){
     pinMode(level[i], OUTPUT);
     digitalWrite(level[i],LOW);
   }
-
   for(int i = 0; i < 4; i++){
-    red[i] = 0x0000;
-    blue[i] = 0x0000;
+    red[i] = renderRed[i] = 0x6FF6;
+    blue[i] = renderBlue[i] = 0x9009;
   }
-
-  red[0] = 0xFF00;
-  blue[0] = 0x00FF;
-
-  red[1] = 0x0F0F;
-  blue[1] = 0xF0F0;
-
-  red[2] = 0xF0F0;
-  blue[2] = 0x0F0F;
+  
+  gameOver = false;
+  playerSelecting = false;
+  redTurn = true;
 }
 
-/*
- * loop() - this function runs over and over again
- */
 void loop() 
 {
-  // Initially turns all the LEDs off, by giving the variable 'leds' the value 0
-  updateShiftRegister();
-  
+  /* 
+  if(!gameOver){
+    sensorChecking();
+    movement();
+    cursorRender();
+    gameLogic();
+  }else{
+    winningRender();
+  }
+  */
+  renderCube();
+}
+
+void sensorChecking(){
   
 }
 
-/*
- * updateShiftRegister() - This function sets the latchPin to low, then calls the Arduino function 'shiftOut' to shift out contents of variable 'leds' in the shift register before putting the 'latchPin' high again.
- */
-void updateShiftRegister()
-{   for(int i = 0; i < 4; i++){
-       digitalWrite(level[i], HIGH);
+void winningRender(){
   
+}
+
+void gameLogic(){
+  
+}
+
+void cursorRender(){
+  static int blink = 0;
+
+  for(int i = 0; i < 4; i++){
+    renderRed[i] = red[i];
+    renderBlue[i] = blue[i] ;
+  }
+  
+  if(playerSelecting && blink > 100 && blink < 200){
+    renderRed[cursorLevel] = red[cursorLevel] && cursorLocation;
+    renderBlue[cursorLevel] = blue[cursorLevel] && cursorLocation;
+  }else{
+    renderRed[cursorLevel] = red[cursorLevel];
+    renderBlue[cursorLevel] = blue[cursorLevel];
+  }
+
+  blink++;
+  if(blink > 200){
+    blink = 0;
+  }
+}
+
+void movement(){
+  if(!playerSelecting){
+    //spawn cursor     0123012301230123
+    cursorLocation = 0b1000000000000000;
+    cursorLevel = 0;
+
+    //check conflict
+    while( (red[cursorLevel] && cursorLocation ) || (blue[cursorLevel] && cursorLocation) ){
+      cursorLocation = cursorLocation >> 1;
+      if(cursorLocation == 0){
+        cursorLocation = 0b1000000000000000;
+        cursorLevel++;
+      }
+    }
+
+    playerSelecting = true;
+  }
+
+  if(moveX){
+    moveX = false;
+    cursorLocation = cursorLocation >> 1;
+    
+    if(cursorLocation == 0x0800){
+      cursorLocation = 0x8000;
+    }else if(cursorLocation == 0x0080){
+      cursorLocation = 0x0800;
+    }else if(cursorLocation == 0x0008){
+      cursorLocation = 0x0080;
+    }else if(cursorLocation == 0x0000){
+      cursorLocation = 0x0008;
+    }
+  }else if(moveY){
+    moveY = false;
+    
+    if(cursorLocation == 0x0008)
+      cursorLocation = 0x8000;
+    else if(cursorLocation == 0x0004)
+      cursorLocation = 0x4000;
+    else if(cursorLocation == 0x0002)
+      cursorLocation = 0x2000;
+    else if(cursorLocation == 0x0001)
+      cursorLocation = 0x1000;
+    else
+      cursorLocation = cursorLocation >> 4;
+  }else if(moveZ){
+    moveZ = false;
+    
+    cursorLevel = (cursorLevel + 1) % 4;
+  }
+}
+
+void renderCube()
+{   
+  for(int i = 0; i < 4; i++){
+       digitalWrite(level[i], HIGH);
+
+       unsigned int dummyBlue;
+       unsigned int dummyRed;
+       dummyBlue = ~renderBlue[i];
+       dummyRed = ~renderRed[i];
+       
        digitalWrite(latchPin, LOW);
-       shiftOut(dataPin, clockPin, LSBFIRST, blue[i] >> 8);
-       shiftOut(dataPin, clockPin, LSBFIRST, blue[i]);
+       shiftOut(dataPin, clockPin, LSBFIRST, dummyBlue);
+       shiftOut(dataPin, clockPin, LSBFIRST, dummyBlue >> 8);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        digitalWrite(latchPin, HIGH);
@@ -72,8 +170,8 @@ void updateShiftRegister()
        digitalWrite(latchPin, LOW);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
        shiftOut(dataPin, clockPin, LSBFIRST, 0xFF);
-       shiftOut(dataPin, clockPin, LSBFIRST, red[i] >> 8);
-       shiftOut(dataPin, clockPin, LSBFIRST, red[i]);
+       shiftOut(dataPin, clockPin, LSBFIRST, dummyRed);
+       shiftOut(dataPin, clockPin, LSBFIRST, dummyRed >> 8);
        digitalWrite(latchPin, HIGH);
     
        delay(1);
