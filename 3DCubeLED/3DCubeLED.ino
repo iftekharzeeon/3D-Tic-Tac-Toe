@@ -644,7 +644,9 @@ void movement(){
     cursorLevel = (cursorLevel + 1) % 4;
   }
 
-  if(digitalRead(selectbit)){
+  static int debounceDelay = 0;
+  if(digitalRead(selectbit) && debounceDelay > 50){
+    debounceDelay = 0;
     if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
       //conflict
     }else{
@@ -659,6 +661,7 @@ void movement(){
       }
     }
   }
+  debounceDelay++;
 }
 
 void renderCube()
