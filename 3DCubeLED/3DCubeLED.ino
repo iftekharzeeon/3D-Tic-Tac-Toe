@@ -3,7 +3,7 @@
 
 MPU6050 mpu(Wire);
 
-int redPin = 3;
+int redPin = 7;
 int bluePin = 2;
 
 int latchPin = 5;
@@ -102,6 +102,20 @@ void loop()
     if(movementBlink > 10){
       movement();
       movementBlink = 0;
+
+      /*
+       * serial check
+       */
+       Serial.println("red");
+       for(int i = 0; i < 4; i++){
+        Serial.println(red[i],HEX);
+       }
+       Serial.println("blue");
+       for(int i = 0; i < 4; i++){
+        Serial.println(blue[i],HEX);
+       }
+       Serial.println(F("=====================================================\n"));
+       
     }
     cursorRender();
     gameLogic();
@@ -145,10 +159,10 @@ void sensorChecking(){
 ////  delay(10);
 //  zAxisAngle = mpu.getAngleZ();
 
-  Serial.print(prevX);Serial.print("\t");Serial.println(xAxisAngle);
-  Serial.print(prevY);Serial.print("\t");Serial.println(yAxisAngle);
-  Serial.print(prevZ);Serial.print("\t");Serial.println(zAxisAngle);
-  Serial.println(F("=====================================================\n"));
+//  Serial.print(prevX);Serial.print("\t");Serial.println(xAxisAngle);
+//  Serial.print(prevY);Serial.print("\t");Serial.println(yAxisAngle);
+//  Serial.print(prevZ);Serial.print("\t");Serial.println(zAxisAngle);
+//  Serial.println(F("=====================================================\n"));
 
 //  if (xAxisAngle <= -18) {
 //    moveX = true;
@@ -211,19 +225,21 @@ bool checkRed(){
     //col match
     checker = 0x8888;
     for(int j = 0; j < 4; j++){ 
-      if(checker >> j == (red[i] & checker >> j)){
-        winningRed[i] = checker >> j;
+      if(checker == (red[i] & checker)){
+        winningRed[i] = checker;
         return true;
       }
+      checker = checker >> 1;
     }
 
     //row match
     checker = 0xF000;
     for(int j = 0; j < 4; j++){ 
-      if(checker >> j*4 == (red[i] & checker >> j*4)){
-        winningRed[i] = checker >> j*4;
+      if(checker == (red[i] & checker)){
+        winningRed[i] = checker ;
         return true;
       }
+      checker = checker >> 4;
     }
 
     //cross match
@@ -393,21 +409,23 @@ bool checkBlue(){
     //col match
     checker = 0x8888;
     for(int j = 0; j < 4; j++){ 
-      if(checker >> j == (blue[i] & checker >> j)){
+      if(checker == (blue[i] & checker)){
         
-        winningBlue[i] = checker >> j;
+        winningBlue[i] = checker;
         return true;
       }
+      checker = checker >> 1;
     }
 
     //row match
     checker = 0xF000;
     for(int j = 0; j < 4; j++){ 
-      if(checker >> j*4 == (blue[i] & checker >> j*4)){
+      if(checker == (blue[i] & checker)){
         
-        winningBlue[i] = checker >> j*4;
+        winningBlue[i] = checker;
         return true;
       }
+      checker >> 4;
     }
 
     //cross match
@@ -670,23 +688,44 @@ void movement(){
     cursorLevel = (cursorLevel + 1) % 4;
   }
 
+  static bool firstClick = true;
   static unsigned int debounceDelay = 0;
-  if(digitalRead(selectPin) && debounceDelay > 300){
-    if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
-      //conflict
-    }else{
-      if(redTurn){
-        red[cursorLevel] = red[cursorLevel] | cursorLocation;
-        redTurn = !redTurn;
-        playerSelecting = false;
+
+  if(firstClick){
+    if(digitalRead(selectPin)){
+      if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
+        //conflict
       }else{
-        blue[cursorLevel] = blue[cursorLevel] | cursorLocation;
-        redTurn = !redTurn;
-        playerSelecting = false;
+        if(redTurn){
+          red[cursorLevel] = red[cursorLevel] | cursorLocation;
+          redTurn = false;
+          playerSelecting = false;
+        }else{
+          blue[cursorLevel] = blue[cursorLevel] | cursorLocation;
+          redTurn = true;
+          playerSelecting = false;
+        }
       }
     }
+    firstClick = false;
+  }else{
+    if(digitalRead(selectPin) && debounceDelay > 300){
+      if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
+        //conflict
+      }else{
+        if(redTurn){
+          red[cursorLevel] = red[cursorLevel] | cursorLocation;
+          redTurn = false;
+          playerSelecting = false;
+        }else{
+          blue[cursorLevel] = blue[cursorLevel] | cursorLocation;
+          redTurn = true;
+          playerSelecting = false;
+        }
+      }
+    }
+    debounceDelay++;
   }
-  debounceDelay++;
 }
 
 void renderCube()
