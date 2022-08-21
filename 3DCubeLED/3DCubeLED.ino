@@ -3,6 +3,9 @@
 
 MPU6050 mpu(Wire);
 
+int redPin = 3;
+int bluePin = 2;
+
 int latchPin = 5;
 int clockPin = 6;
 int dataPin = 4;
@@ -54,6 +57,8 @@ void setup()
   pinMode(clockPin, OUTPUT);
   pinMode(outputEn, OUTPUT);
   pinMode(selectPin, INPUT);
+  pinMode(redPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
   level[0] = 13;
   level[1] = 12;
   level[2] = 11;
@@ -166,6 +171,8 @@ void sensorChecking(){
 }
 
 void winningRender(){
+  bool match;
+  
   if(redWon){
     for(int i = 0; i < 4; i++){
       renderRed[i] = 0xFFFF;
@@ -193,399 +200,395 @@ void winningRender(){
   
 }
 
+
+bool checkRed(){
+  unsigned int checker;
+  unsigned int checkers[4];
+  bool match;
+  
+  for(int i = 0; i < 4; i++){
+    
+    //col match
+    checker = 0x8888;
+    for(int j = 0; j < 4; j++){ 
+      if(checker >> j == (red[i] & checker >> j)){
+        winningRed[i] = checker >> j;
+        return true;
+      }
+    }
+
+    //row match
+    checker = 0xF000;
+    for(int j = 0; j < 4; j++){ 
+      if(checker >> j*4 == (red[i] & checker >> j*4)){
+        winningRed[i] = checker >> j*4;
+        return true;
+      }
+    }
+
+    //cross match
+    checker = 0x8421;
+    if( checker == (checker & red[i]) ){
+        winningRed[i] = checker;
+        return true;
+    }
+
+    checker = 0x1248;
+    if( checker == (checker & red[i]) ){
+        winningRed[i] = checker;
+        return true;
+    }
+  }
+  
+  //vertical match
+  unsigned int lev = red[0] & red[1] & red[2] & red[3];
+  if(lev){
+    for(int i = 0; i++; i < 16){
+      if(lev & 1 << i){
+        winningRed[0] = 1 << i;
+        winningRed[1] = 1 << i;
+        winningRed[2] = 1 << i;
+        winningRed[3] = 1 << i;
+        return true;
+      }
+    }
+  }
+  
+  //crosses in rows
+  checkers[0] = 0x8000;
+  checkers[1] = 0x0800;
+  checkers[2] = 0x0080;
+  checkers[3] = 0x0008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(red[j] & checkers[j])) match = false;
+    }
+    if(match){
+      winningRed[0] = checkers[0];
+      winningRed[1] = checkers[1];
+      winningRed[2] = checkers[2];
+      winningRed[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 1;
+    }
+  }
+
+  checkers[0] = 0x0008;
+  checkers[1] = 0x0080;
+  checkers[2] = 0x0800;
+  checkers[3] = 0x8000;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(red[j] & checkers[j])) match = false;
+    }
+    if(match){
+      winningRed[0] = checkers[0];
+      winningRed[1] = checkers[1];
+      winningRed[2] = checkers[2];
+      winningRed[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 1;
+    }
+  }
+
+  //crosses in cols
+  checkers[0] = 0x8000;
+  checkers[1] = 0x4000;
+  checkers[2] = 0x2000;
+  checkers[3] = 0x1008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(red[j] & checkers[j])) match = false;
+    }
+    if(match){
+      winningRed[0] = checkers[0];
+      winningRed[1] = checkers[1];
+      winningRed[2] = checkers[2];
+      winningRed[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 4;
+    }
+  }
+
+  checkers[0] = 0x1000;
+  checkers[1] = 0x2000;
+  checkers[2] = 0x4000;
+  checkers[3] = 0x8008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(red[j] & checkers[j])) match = false;
+    }
+    if(match){
+      winningRed[0] = checkers[0];
+      winningRed[1] = checkers[1];
+      winningRed[2] = checkers[2];
+      winningRed[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 4;
+    }
+  }
+
+  //special cross
+  checkers[0] = 0x8000;
+  checkers[1] = 0x0400;
+  checkers[2] = 0x0020;
+  checkers[3] = 0x0001;
+
+  match = true;
+  for(int j = 0; j < 4; j++){
+    if(!(red[j] & checkers[j])) match = false;
+  }
+  if(match){
+    winningRed[0] = checkers[0];
+    winningRed[1] = checkers[1];
+    winningRed[2] = checkers[2];
+    winningRed[3] = checkers[3];
+    return true;
+  }
+
+  //special cross
+  checkers[0] = 0x0001;
+  checkers[1] = 0x0020;
+  checkers[2] = 0x0400;
+  checkers[3] = 0x8000;
+
+  match = true;
+  for(int j = 0; j < 4; j++){
+    if(!(red[j] & checkers[j])) match = false;
+  }
+  if(match){
+    winningRed[0] = checkers[0];
+    winningRed[1] = checkers[1];
+    winningRed[2] = checkers[2];
+    winningRed[3] = checkers[3];
+    return true;
+  }
+
+  return false;
+}
+
+bool checkBlue(){
+  unsigned int checker;
+  unsigned int checkers[4];
+  bool match;
+
+  for(int i = 0; i < 4; i++){
+    
+    //col match
+    checker = 0x8888;
+    for(int j = 0; j < 4; j++){ 
+      if(checker >> j == (blue[i] & checker >> j)){
+        
+        winningBlue[i] = checker >> j;
+        return true;
+      }
+    }
+
+    //row match
+    checker = 0xF000;
+    for(int j = 0; j < 4; j++){ 
+      if(checker >> j*4 == (blue[i] & checker >> j*4)){
+        
+        winningBlue[i] = checker >> j*4;
+        return true;
+      }
+    }
+
+    //cross match
+    checker = 0x8421;
+    if( checker == (checker & blue[i]) ){
+        
+        winningBlue[i] = checker;
+        return true;
+    }
+
+    checker = 0x1248;
+    if( checker == (checker & blue[i]) ){
+        
+        winningBlue[i] = checker;
+        return true;
+    }
+  }
+  
+  //vertical match
+  unsigned int lev = blue[0] & blue[1] & blue[2] & blue[3];
+  if(lev){
+    for(int i = 0; i++; i < 16){
+      if(lev & 1 << i){
+        
+        winningBlue[0] = 1 << i;
+        winningBlue[1] = 1 << i;
+        winningBlue[2] = 1 << i;
+        winningBlue[3] = 1 << i;
+        return true;
+      }
+    }
+  }
+  
+  //crosses in rows
+  checkers[0] = 0x8000;
+  checkers[1] = 0x0800;
+  checkers[2] = 0x0080;
+  checkers[3] = 0x0008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(blue[j] & checkers[j])) match = false;
+    }
+    if(match){
+      
+      winningBlue[0] = checkers[0];
+      winningBlue[1] = checkers[1];
+      winningBlue[2] = checkers[2];
+      winningBlue[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 1;
+    }
+  }
+
+  checkers[0] = 0x0008;
+  checkers[1] = 0x0080;
+  checkers[2] = 0x0800;
+  checkers[3] = 0x8000;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(blue[j] & checkers[j])) match = false;
+    }
+    if(match){
+      
+      winningBlue[0] = checkers[0];
+      winningBlue[1] = checkers[1];
+      winningBlue[2] = checkers[2];
+      winningBlue[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 1;
+    }
+  }
+
+  //crosses in cols
+  checkers[0] = 0x8000;
+  checkers[1] = 0x4000;
+  checkers[2] = 0x2000;
+  checkers[3] = 0x1008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(blue[j] & checkers[j])) match = false;
+    }
+    if(match){
+      
+      winningBlue[0] = checkers[0];
+      winningBlue[1] = checkers[1];
+      winningBlue[2] = checkers[2];
+      winningBlue[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 4;
+    }
+  }
+
+  checkers[0] = 0x1000;
+  checkers[1] = 0x2000;
+  checkers[2] = 0x4000;
+  checkers[3] = 0x8008;
+
+  for(int i = 0; i < 4; i++){
+    match = true;
+    for(int j = 0; j < 4; j++){
+      if(!(blue[j] & checkers[j])) match = false;
+    }
+    if(match){
+      
+      winningBlue[0] = checkers[0];
+      winningBlue[1] = checkers[1];
+      winningBlue[2] = checkers[2];
+      winningBlue[3] = checkers[3];
+      return true;
+    }
+    for(int j = 0; j < 4; j++){
+      checkers[j] = checkers[j] >> 4;
+    }
+  }
+
+  //special cross
+  checkers[0] = 0x8000;
+  checkers[1] = 0x0400;
+  checkers[2] = 0x0020;
+  checkers[3] = 0x0001;
+
+  match = true;
+  for(int j = 0; j < 4; j++){
+    if(!(blue[j] & checkers[j])) match = false;
+  }
+  if(match){
+    
+    winningBlue[0] = checkers[0];
+    winningBlue[1] = checkers[1];
+    winningBlue[2] = checkers[2];
+    winningBlue[3] = checkers[3];
+    return true;
+  }
+
+  //special cross
+  checkers[0] = 0x0001;
+  checkers[1] = 0x0020;
+  checkers[2] = 0x0400;
+  checkers[3] = 0x8000;
+
+  match = true;
+  for(int j = 0; j < 4; j++){
+    if(!(blue[j] & checkers[j])) match = false;
+  }
+  if(match){
+    
+    winningBlue[0] = checkers[0];
+    winningBlue[1] = checkers[1];
+    winningBlue[2] = checkers[2];
+    winningBlue[3] = checkers[3];
+    return true;
+  }
+
+  return false;
+}
+
+
+
 void gameLogic(){
   for(int i = 0; i < 4; i++){
       winningRed[i] = 0x0000;
       winningBlue[i] = 0x0000;
   }
 
-  bool match;
   bool redMatched = false;
   bool blueMatched = false;
-  unsigned int checker;
-  unsigned int checkers[4];
 
-  
-  //red
-  do{
-    //level match
-    for(int i = 0; i < 4; i++){
-      
-      //col match
-      checker = 0x8888;
-      for(int j = 0; j < 4; j++){ 
-        if(checker >> j == red[i] & checker >> j){
-          redMatched = true;
-          winningRed[i] = checker >> j;
-          break;
-        }
-      }
-
-      //row match
-      checker = 0xF000;
-      for(int j = 0; j < 4; j++){ 
-        if(checker >> j*4 == red[i] & checker >> j*4){
-          redMatched = true;
-          winningRed[i] = checker >> j*4;
-          break;
-        }
-      }
-
-      //cross match
-      checker = 0x8421;
-      if( checker == checker & red[i] ){
-          redMatched = true;
-          winningRed[i] = checker;
-          break;
-      }
-
-      checker = 0x1248;
-      if( checker == checker & red[i] ){
-          redMatched = true;
-          winningRed[i] = checker;
-          break;
-      }
-    }
-    
-    //vertical match
-    unsigned int lev = red[0] & red[1] & red[2] & red[3];
-    if(lev){
-      for(int i = 0; i++; i < 16){
-        if(lev & 1 << i){
-          redMatched = true;
-          winningRed[0] = 1 << i;
-          winningRed[1] = 1 << i;
-          winningRed[2] = 1 << i;
-          winningRed[3] = 1 << i;
-          break;
-        }
-      }
-    }
-    
-    //crosses in rows
-    checkers[0] = 0x8000;
-    checkers[1] = 0x0800;
-    checkers[2] = 0x0080;
-    checkers[3] = 0x0008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        redMatched = true;
-        winningRed[0] = checkers[0];
-        winningRed[1] = checkers[1];
-        winningRed[2] = checkers[2];
-        winningRed[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 1;
-      }
-    }
-
-    checkers[0] = 0x0008;
-    checkers[1] = 0x0080;
-    checkers[2] = 0x0800;
-    checkers[3] = 0x8000;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        redMatched = true;
-        winningRed[0] = checkers[0];
-        winningRed[1] = checkers[1];
-        winningRed[2] = checkers[2];
-        winningRed[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 1;
-      }
-    }
-
-    //crosses in cols
-    checkers[0] = 0x8000;
-    checkers[1] = 0x4000;
-    checkers[2] = 0x2000;
-    checkers[3] = 0x1008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        redMatched = true;
-        winningRed[0] = checkers[0];
-        winningRed[1] = checkers[1];
-        winningRed[2] = checkers[2];
-        winningRed[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 4;
-      }
-    }
-
-    checkers[0] = 0x1000;
-    checkers[1] = 0x2000;
-    checkers[2] = 0x4000;
-    checkers[3] = 0x8008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        redMatched = true;
-        winningRed[0] = checkers[0];
-        winningRed[1] = checkers[1];
-        winningRed[2] = checkers[2];
-        winningRed[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 4;
-      }
-    }
-
-    //special cross
-    checkers[0] = 0x8000;
-    checkers[1] = 0x0400;
-    checkers[2] = 0x0020;
-    checkers[3] = 0x0001;
-
-    match = true;
-    for(int j = 0; j < 4; j++){
-      if(!(red[j] & checkers[j])) match = false;
-    }
-    if(match){
-      redMatched = true;
-      winningRed[0] = checkers[0];
-      winningRed[1] = checkers[1];
-      winningRed[2] = checkers[2];
-      winningRed[3] = checkers[3];
-      break;
-    }
-
-    //special cross
-    checkers[0] = 0x0001;
-    checkers[1] = 0x0020;
-    checkers[2] = 0x0400;
-    checkers[3] = 0x8000;
-
-    match = true;
-    for(int j = 0; j < 4; j++){
-      if(!(red[j] & checkers[j])) match = false;
-    }
-    if(match){
-      redMatched = true;
-      winningRed[0] = checkers[0];
-      winningRed[1] = checkers[1];
-      winningRed[2] = checkers[2];
-      winningRed[3] = checkers[3];
-      break;
-    }
-  }while(false);
-
-
-
-
-  // blue
-  do{
-    //level match
-    for(int i = 0; i < 4; i++){
-      
-      //col match
-      checker = 0x8888;
-      for(int j = 0; j < 4; j++){ 
-        if(checker >> j == red[i] & checker >> j){
-          blueMatched = true;
-          winningBlue[i] = checker >> j;
-          break;
-        }
-      }
-
-      //row match
-      checker = 0xF000;
-      for(int j = 0; j < 4; j++){ 
-        if(checker >> j*4 == red[i] & checker >> j*4){
-          blueMatched = true;
-          winningBlue[i] = checker >> j*4;
-          break;
-        }
-      }
-
-      //cross match
-      checker = 0x8421;
-      if( checker == checker & red[i] ){
-          blueMatched = true;
-          winningBlue[i] = checker;
-          break;
-      }
-
-      checker = 0x1248;
-      if( checker == checker & red[i] ){
-          blueMatched = true;
-          winningBlue[i] = checker;
-          break;
-      }
-    }
-    
-    //vertical match
-    unsigned int lev = red[0] & red[1] & red[2] & red[3];
-    if(lev){
-      for(int i = 0; i++; i < 16){
-        if(lev & 1 << i){
-          blueMatched = true;
-          winningBlue[0] = 1 << i;
-          winningBlue[1] = 1 << i;
-          winningBlue[2] = 1 << i;
-          winningBlue[3] = 1 << i;
-          break;
-        }
-      }
-    }
-    
-    //crosses in rows
-    checkers[0] = 0x8000;
-    checkers[1] = 0x0800;
-    checkers[2] = 0x0080;
-    checkers[3] = 0x0008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        blueMatched = true;
-        winningBlue[0] = checkers[0];
-        winningBlue[1] = checkers[1];
-        winningBlue[2] = checkers[2];
-        winningBlue[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 1;
-      }
-    }
-
-    checkers[0] = 0x0008;
-    checkers[1] = 0x0080;
-    checkers[2] = 0x0800;
-    checkers[3] = 0x8000;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        blueMatched = true;
-        winningBlue[0] = checkers[0];
-        winningBlue[1] = checkers[1];
-        winningBlue[2] = checkers[2];
-        winningBlue[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 1;
-      }
-    }
-
-    //crosses in cols
-    checkers[0] = 0x8000;
-    checkers[1] = 0x4000;
-    checkers[2] = 0x2000;
-    checkers[3] = 0x1008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        blueMatched = true;
-        winningBlue[0] = checkers[0];
-        winningBlue[1] = checkers[1];
-        winningBlue[2] = checkers[2];
-        winningBlue[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 4;
-      }
-    }
-
-    checkers[0] = 0x1000;
-    checkers[1] = 0x2000;
-    checkers[2] = 0x4000;
-    checkers[3] = 0x8008;
-
-    for(int i = 0; i < 4; i++){
-      match = true;
-      for(int j = 0; j < 4; j++){
-        if(!(red[j] & checkers[j])) match = false;
-      }
-      if(match){
-        blueMatched = true;
-        winningBlue[0] = checkers[0];
-        winningBlue[1] = checkers[1];
-        winningBlue[2] = checkers[2];
-        winningBlue[3] = checkers[3];
-        break;
-      }
-      for(int j = 0; j < 4; j++){
-        checkers[j] = checkers[j] >> 4;
-      }
-    }
-
-    //special cross
-    checkers[0] = 0x8000;
-    checkers[1] = 0x0400;
-    checkers[2] = 0x0020;
-    checkers[3] = 0x0001;
-
-    match = true;
-    for(int j = 0; j < 4; j++){
-      if(!(red[j] & checkers[j])) match = false;
-    }
-    if(match){
-      blueMatched = true;
-      winningBlue[0] = checkers[0];
-      winningBlue[1] = checkers[1];
-      winningBlue[2] = checkers[2];
-      winningBlue[3] = checkers[3];
-      break;
-    }
-
-    //special cross
-    checkers[0] = 0x0001;
-    checkers[1] = 0x0020;
-    checkers[2] = 0x0400;
-    checkers[3] = 0x8000;
-
-    match = true;
-    for(int j = 0; j < 4; j++){
-      if(!(red[j] & checkers[j])) match = false;
-    }
-    if(match){
-      blueMatched = true;
-      winningBlue[0] = checkers[0];
-      winningBlue[1] = checkers[1];
-      winningBlue[2] = checkers[2];
-      winningBlue[3] = checkers[3];
-      break;
-    }
-  }while(false);
+  redMatched = checkRed();
+  blueMatched = checkBlue();
 
   if(redMatched){
     gameOver = true;
@@ -667,8 +670,8 @@ void movement(){
     cursorLevel = (cursorLevel + 1) % 4;
   }
 
-  static int debounceDelay = 0;
-  if(digitalRead(selectPin) && debounceDelay > 100){
+  static unsigned int debounceDelay = 0;
+  if(digitalRead(selectPin) && debounceDelay > 300){
     if((red[cursorLevel] & cursorLocation ) || (blue[cursorLevel] & cursorLocation)){
       //conflict
     }else{
@@ -687,7 +690,16 @@ void movement(){
 }
 
 void renderCube()
-{   
+{  
+  if(!gameOver){
+    if(redTurn){
+      digitalWrite(redPin, HIGH);
+      digitalWrite(bluePin, LOW);
+    }else{
+      digitalWrite(bluePin, HIGH);
+      digitalWrite(redPin, LOW);
+    }
+  }
   for(int i = 0; i < 4; i++){
 
        unsigned int dummyBlue;
