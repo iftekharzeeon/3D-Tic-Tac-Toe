@@ -258,16 +258,13 @@ bool checkRed(){
   
   //vertical match
   unsigned int lev = red[0] & red[1] & red[2] & red[3];
-  if(lev){
-    for(int i = 0; i++; i < 16){
-      if(lev & 1 << i){
-        winningRed[0] = 1 << i;
-        winningRed[1] = 1 << i;
-        winningRed[2] = 1 << i;
-        winningRed[3] = 1 << i;
-        return true;
-      }
-    }
+  if(lev != 0x0000){
+    Serial.println(lev);
+    winningRed[0] = lev;
+    winningRed[1] = lev;
+    winningRed[2] = lev;
+    winningRed[3] = lev;
+    return true;
   }
   
   //crosses in rows
@@ -446,17 +443,13 @@ bool checkBlue(){
   
   //vertical match
   unsigned int lev = blue[0] & blue[1] & blue[2] & blue[3];
-  if(lev){
-    for(int i = 0; i++; i < 16){
-      if(lev & 1 << i){
-        
-        winningBlue[0] = 1 << i;
-        winningBlue[1] = 1 << i;
-        winningBlue[2] = 1 << i;
-        winningBlue[3] = 1 << i;
-        return true;
-      }
-    }
+  if(lev != 0x0000){
+    Serial.println(lev);
+    winningBlue[0] = lev;
+    winningBlue[1] = lev;
+    winningBlue[2] = lev;
+    winningBlue[3] = lev;
+    return true;
   }
   
   //crosses in rows
