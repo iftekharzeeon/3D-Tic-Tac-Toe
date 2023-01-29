@@ -125,7 +125,7 @@ void loop()
   
   //rowByrow();
   renderCube();
- movementBlink++;
+  movementBlink++;
   moveX = false;
   moveY = false;
   moveZ = false;
@@ -785,7 +785,7 @@ void rowByrow(){
     renderRed[l] = ~j;
   }
 
-  if(j == 0x8000) {
+  if(j == 0xF000) {
     j = 0x1;
     l++;
     
